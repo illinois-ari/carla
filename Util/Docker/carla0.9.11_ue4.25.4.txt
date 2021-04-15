@@ -1,0 +1,70 @@
+diff --git a/Unreal/CarlaUE4/Plugins/Carla/Source/Carla/Commandlet/PrepareAssetsForCookingCommandlet.cpp b/Unreal/CarlaUE4/Plugins/Carla/Source/Carla/Commandlet/PrepareAssetsForCookingCommandlet.cpp
+index e7be8801..a8b2e6db 100644
+--- a/Unreal/CarlaUE4/Plugins/Carla/Source/Carla/Commandlet/PrepareAssetsForCookingCommandlet.cpp
++++ b/Unreal/CarlaUE4/Plugins/Carla/Source/Carla/Commandlet/PrepareAssetsForCookingCommandlet.cpp
+@@ -379,7 +379,7 @@ void UPrepareAssetsForCookingCommandlet::GenerateMapPathsFile(
+     if (Map.Path.StartsWith(TEXT("/Game/")))
+     {
+       // replacing relative /Game/... address by absolute address to be able to parse files
+-      FString FullPath(FPaths::GameDir() + TEXT("/Content/") + Map.Path.Mid(6, Map.Path.Len() - 6) + TEXT("/Sublevels/") + Map.Name);
++      FString FullPath(FPaths::ProjectDir() + TEXT("/Content/") + Map.Path.Mid(6, Map.Path.Len() - 6) + TEXT("/Sublevels/") + Map.Name);
+       TArray<FString> Sublevels;
+       FileManager.FindFiles(Sublevels, *FullPath, TEXT("*.umap"));
+       for (auto Sublevel : Sublevels)
+diff --git a/Unreal/CarlaUE4/Plugins/Carla/Source/Carla/Sensor/PixelReader.cpp b/Unreal/CarlaUE4/Plugins/Carla/Source/Carla/Sensor/PixelReader.cpp
+index 42cf3e15..ae82b192 100644
+--- a/Unreal/CarlaUE4/Plugins/Carla/Source/Carla/Sensor/PixelReader.cpp
++++ b/Unreal/CarlaUE4/Plugins/Carla/Source/Carla/Sensor/PixelReader.cpp
+@@ -92,7 +92,9 @@ TUniquePtr<TImagePixelData<FColor>> FPixelReader::DumpPixels(
+ {
+   const FIntPoint DestSize(RenderTarget.GetSurfaceWidth(), RenderTarget.GetSurfaceHeight());
+   TUniquePtr<TImagePixelData<FColor>> PixelData = MakeUnique<TImagePixelData<FColor>>(DestSize);
+-  if (!WritePixelsToArray(RenderTarget, PixelData->Pixels))
++  PixelData->Pixels.Shrink();
++  TArray<FColor> BitMap32(PixelData->Pixels.GetData(), PixelData->Pixels.Num());
++  if (!WritePixelsToArray(RenderTarget, BitMap32))
+   {
+     return nullptr;
+   }
+diff --git a/Unreal/CarlaUE4/Plugins/Carla/Source/Carla/Sensor/SceneCaptureSensor.cpp b/Unreal/CarlaUE4/Plugins/Carla/Source/Carla/Sensor/SceneCaptureSensor.cpp
+index 3d912405..4552976c 100644
+--- a/Unreal/CarlaUE4/Plugins/Carla/Source/Carla/Sensor/SceneCaptureSensor.cpp
++++ b/Unreal/CarlaUE4/Plugins/Carla/Source/Carla/Sensor/SceneCaptureSensor.cpp
+@@ -337,13 +337,13 @@ float ASceneCaptureSensor::GetExposureSpeedUp() const
+ void ASceneCaptureSensor::SetExposureCalibrationConstant(float Constant)
+ {
+   check(CaptureComponent2D != nullptr);
+-  CaptureComponent2D->PostProcessSettings.AutoExposureCalibrationConstant = Constant;
++  CaptureComponent2D->PostProcessSettings.AutoExposureCalibrationConstant_DEPRECATED = Constant;
+ }
+ 
+ float ASceneCaptureSensor::GetExposureCalibrationConstant() const
+ {
+   check(CaptureComponent2D != nullptr);
+-  return CaptureComponent2D->PostProcessSettings.AutoExposureCalibrationConstant;
++  return CaptureComponent2D->PostProcessSettings.AutoExposureCalibrationConstant_DEPRECATED;
+ }
+ 
+ void ASceneCaptureSensor::SetMotionBlurIntensity(float Intensity)
+@@ -546,7 +546,7 @@ namespace SceneCaptureSensor_local_ns {
+     PostProcessSettings.bOverride_AutoExposureMaxBrightness = true;
+     PostProcessSettings.bOverride_AutoExposureSpeedUp = true;
+     PostProcessSettings.bOverride_AutoExposureSpeedDown = true;
+-    PostProcessSettings.bOverride_AutoExposureCalibrationConstant = true;
++    PostProcessSettings.bOverride_AutoExposureCalibrationConstant_DEPRECATED = true;
+     PostProcessSettings.bOverride_HistogramLogMin = true;
+     PostProcessSettings.HistogramLogMin = 1.0f;
+     PostProcessSettings.bOverride_HistogramLogMax = true;
+diff --git a/Util/BuildTools/Package.sh b/Util/BuildTools/Package.sh
+index b25b2222..2acc0584 100755
+--- a/Util/BuildTools/Package.sh
++++ b/Util/BuildTools/Package.sh
+@@ -163,7 +163,7 @@ if ${DO_CARLA_RELEASE} ; then
+ 
+   copy_if_changed "./Co-Simulation/" "${DESTINATION}/Co-Simulation/"
+ 
+-  copy_if_changed "./Plugins/" "${DESTINATION}/Plugins/"
++  copy_if_changed "./Unreal/CarlaUE4/Plugins/" "${DESTINATION}/Plugins/"
+ 
+   copy_if_changed "./Unreal/CarlaUE4/Content/Carla/HDMaps/*.pcd" "${DESTINATION}/HDMaps/"
+   copy_if_changed "./Unreal/CarlaUE4/Content/Carla/HDMaps/Readme.md" "${DESTINATION}/HDMaps/README"
