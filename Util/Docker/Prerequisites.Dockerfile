@@ -1,5 +1,5 @@
 ARG UE4_V=4.25.4
-FROM adamrehn/ue4-source:${UE4_V}-opengl
+FROM adamrehn/ue4-source:${UE4_V}
 
 USER root
 
